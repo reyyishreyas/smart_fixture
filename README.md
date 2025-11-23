@@ -1,239 +1,181 @@
-# 🏆 Knockout Tournament Management System
+**Smart_Fixture**
 
-A **production-ready**, enterprise-level tournament management platform featuring intelligent scheduling, real-time updates, and comprehensive tournament administration.
+Smart_Fixture is an intelligent tournament management platform designed for knockout and group-stage competitions. It automates fixture generation, multi-court scheduling, real-time scoring, and secure umpire verification, ensuring fairness, scalability, and minimal administrative effort.
 
-## ✨ Features
+**Detailed Fixture Logic**
 
-### Core Functionality
-- ✅ **Player Registration** - Individual and bulk CSV upload with validation
-- ✅ **Club Management** - Organize players by clubs with duplicate prevention
-- ✅ **Knockout Fixtures** - Automatic bracket generation for 8-128 players
-- ✅ **Same-Club Avoidance** - Smart pairing to avoid same-club matchups in early rounds
-- ✅ **Automatic Bye Allocation** - Intelligent bye distribution for non-power-of-2 player counts
-- ✅ **Multi-Court Scheduling** - Optimize court usage with intelligent assignment
-- ✅ **Rest Time Enforcement** - Guarantee minimum 10-minute rest between player matches
-- ✅ **Zero Overlap Detection** - Prevent player from having simultaneous matches
-- ✅ **Umpire Match Codes** - Secure code system for match score submission
-- ✅ **Live Scoring** - Real-time score updates with automatic progression
-- ✅ **Dynamic Leaderboard** - Rankings by wins, sets, and points
-- ✅ **Auto Progression** - Winners automatically advance to next round
+The fixture engine generates balanced knockout brackets with intelligent handling of byes, same-club avoidance, and winner progression.
 
-## 🛠 Technology Stack
+Step-by-Step
 
-### Backend
-- **Framework**: FastAPI (Python 3.11)
-- **Server**: Uvicorn with auto-reload
-- **Database**: Supabase (PostgreSQL)
-- **Validation**: Pydantic
-- **CSV Processing**: Pandas
+Player Validation
 
-### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Data Fetching**: SWR + Axios
-- **UI**: Responsive, modern design
+Ensure all registered players have valid IDs, club associations, and required details (age, phone, etc.).
 
-### Database
-- **Provider**: Supabase
-- **Type**: PostgreSQL with real-time capabilities
-- **Tables**: clubs, players, events, matches, scores, match_codes
+Bracket Size Calculation
 
-## 🚀 Quick Start
+Compute the next power of 2 greater than or equal to player count.
 
-### Prerequisites
-- Python 3.11+
-- Node.js 20+
-- Supabase account
+Example: 22 players → bracket size = 32 → 10 byes.
 
-### 1. Database Setup
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor in Supabase Dashboard
-3. Run the SQL schema from `backend/supabase_schema.sql`
-4. Get your credentials from Project Settings → API
+Player Seeding & Randomization
 
-### 2. Backend Setup
-```bash
-cd backend
+Shuffle all players to randomize matchups.
 
-# Create .env file
-cp .env.example .env
+Apply snake seeding to distribute players across the bracket to reduce clustering of players from the same club.
 
-# Add your Supabase credentials to .env:
-# SUPABASE_URL=your_supabase_url
-# SUPABASE_SERVICE_KEY=your_service_key
+Same-Club Avoidance
 
-# Dependencies are auto-installed on Replit
-# Run manually: pip install -r requirements.txt
+Scan first-round pairings:
 
-# Start the server (already configured in workflow)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+If two players from the same club are paired, swap one with the nearest non-conflicting slot.
 
-### 3. Frontend Setup
-```bash
-cd frontend
+Ensures fairness while respecting bracket integrity.
 
-# Create environment file
-cp .env.local.example .env.local
+Bye Allocation
 
-# Update API URL if needed (default: http://localhost:8000/api)
+Remaining empty slots are filled with byes.
 
-# Dependencies are auto-installed
-# Run manually: npm install
+Players receiving byes are automatically advanced to Round 2, and the system generates placeholders for their next-round matches.
 
-# Start the dev server (already configured in workflow)
-npm run dev -- --port 5000 --hostname 0.0.0.0
-```
+Round 1 Match Creation
 
-### 4. Access the Application
-- **Frontend**: http://localhost:5000 (or your Replit URL)
-- **Backend API Docs**: http://localhost:8000/docs
-- **Alternative API Docs**: http://localhost:8000/redoc
+For each paired slot:
 
-## 📡 API Endpoints
+Create a match record with player1_id, player2_id (or null for bye), round, and event_id.
 
-### Players
-- `POST /api/players` - Register a player
-- `GET /api/players?event_id={id}` - Get all players (optionally filtered by event)
-- `POST /api/players/upload-csv` - Bulk upload players via CSV
+Set status = scheduled.
 
-### Clubs
-- `POST /api/clubs` - Create a club
-- `GET /api/clubs` - Get all clubs
+Auto-Progression
 
-### Fixtures
-- `POST /api/generate-fixtures` - Generate knockout bracket
-- `GET /api/fixtures/{event_id}` - Get fixtures for an event
+After match completion:
 
-### Scheduling
-- `POST /api/schedule-matches` - Create smart multi-court schedule
-- `GET /api/schedule/{court_id}` - Get schedule for specific court
+Winner is determined from scores.
 
-### Match Codes
-- `POST /api/match-code/generate` - Generate umpire access code
-- `POST /api/match-code/verify` - Verify match code
+Winner is automatically placed into the next-round match.
 
-### Results
-- `POST /api/update-score` - Submit match score
-- `GET /api/leaderboard/{event_id}` - Get tournament leaderboard
+Next-round matches are created once both participants are available.
 
-## 📊 Database Schema
+**Detailed Scheduling Logic**
 
-```sql
-clubs
-├── id (UUID, PK)
-└── name (TEXT)
+The scheduling engine assigns matches to courts and times while respecting rest periods, avoiding player conflicts, and optimizing court utilization.
 
-players
-├── id (UUID, PK)
-├── name (TEXT)
-├── age (INT)
-├── phone (TEXT)
-├── club_id (UUID, FK)
-└── event_ids (UUID[])
+Steps
 
-events
-├── id (UUID, PK)
-├── name (TEXT)
-├── type (TEXT)
-└── min_rest (INT)
+Court State Tracking
 
-matches
-├── id (UUID, PK)
-├── event_id (UUID, FK)
-├── round (INT)
-├── player1_id (UUID, FK)
-├── player2_id (UUID, FK)
-├── court_id (TEXT)
-├── start_time (TIMESTAMP)
-├── end_time (TIMESTAMP)
-└── status (TEXT)
+Each court maintains a timeline of scheduled matches.
 
-scores
-├── match_id (UUID, PK, FK)
-├── player1_score (INT)
-└── player2_score (INT)
+Used to calculate earliest available start time.
 
-match_codes
-├── match_id (UUID, PK, FK)
-├── code (TEXT)
-├── assigned_umpire (TEXT)
-└── expires_at (TIMESTAMP)
-```
+Player Availability
 
-## 🎯 How It Works
+For each player, track last scheduled match.
 
-### 1. Player Registration
-- Register players individually or bulk upload via CSV
-- Validate phone numbers, ages, and club associations
-- Prevent duplicate registrations within the same event
+Enforce minimum rest: match_start_time >= last_match_end + min_rest.
 
-### 2. Fixture Generation
-- Calculates next power of 2 for bracket size
-- Distributes byes to qualifying players
-- Avoids same-club matchups in Round 1 where possible
-- Creates all Round 1 matches in Supabase
+Conflict Avoidance
 
-### 3. Smart Scheduling
-- Assigns matches to available courts
-- Ensures 10-minute minimum rest between player matches
-- Prevents overlapping matches for any player
-- Optimizes court utilization to minimize idle time
+Check that no player is scheduled in overlapping matches.
 
-### 4. Match Management
-- Generates unique 6-character codes for umpires
-- Verifies codes before allowing score submission
-- Automatically determines winners
-- Progresses winners to next round
-- Creates next-round matches when all current round completes
+Shift matches if conflicts are detected.
 
-### 5. Leaderboard
-- Calculates wins, losses, sets won/lost
-- Ranks by: Wins → Sets Won → Total Points
-- Updates in real-time as scores are submitted
+Court Assignment
 
-## 🌐 Deployment
+Select courts using “minimum idle time first”:
 
-### Frontend (Vercel)
-```bash
-cd frontend
-vercel
-```
+Identify the court that becomes free earliest.
 
-### Backend (Render/Railway)
-- Push to GitHub
-- Connect repository to Render/Railway
-- Set environment variables
-- Deploy
+Verify if the match can start at that time.
 
-## 📝 CSV Upload Format
+Assign match to the best-fit court.
 
-```csv
-name,age,phone,club_id
-John Doe,25,+1234567890,<uuid>
-Jane Smith,28,+0987654321,<uuid>
-```
+Schedule Finalization
 
-## 🔐 Security Features
-- Service key for backend Supabase operations
-- Umpire match codes with expiration
-- Input validation on all endpoints
-- Row Level Security (RLS) support in Supabase
+Record match with:
 
-## 🤝 Contributing
-This is a production-ready system. For modifications:
-1. Test changes locally
-2. Update relevant documentation
-3. Ensure all workflows pass
-4. Deploy to staging before production
+court_id
 
-## 📄 License
-Proprietary - All rights reserved
+start_time, end_time
 
-## 🆘 Support
-For issues or questions, contact the development team.
+Ensures conflict-free, rest-compliant, multi-court schedule.
 
----
+**Detailed Match-Code Flow**
 
-**Built with ❤️ for professional tournament management**
+Match codes ensure secure umpire verification for score submission.
+
+Generation
+
+Each match receives a unique 6-character alphanumeric code.
+
+Stored in match_codes table:
+
+match_id, code, assigned_umpire, expires_at.
+
+Verification
+
+Umpire submits code before scoring:
+
+Check if code exists.
+
+Verify it matches the stored code for that match.
+
+Ensure the code has not expired.
+
+Ensure match is in the correct state for scoring.
+
+Score Submission
+
+Upon verification:
+
+Scores are recorded in scores table.
+
+Match status updated to completed.
+
+Winner automatically progresses to next round.
+
+Auto-Progression
+
+If both next-round participants are known:
+
+System creates next-round match automatically.
+
+Ensures tournament flows without manual intervention.
+
+**Database Schema**
+Table	Columns	Description
+clubs	id (UUID, PK), name (TEXT)	Stores club information
+players	id (UUID, PK), name, age, phone, club_id (FK), event_ids (UUID[])	Player information
+events	id (UUID, PK), name, type, min_rest	Event details
+matches	id (UUID, PK), event_id (FK), round, player1_id (FK), player2_id (FK), court_id, start_time, end_time, status	Stores all matches
+scores	match_id (PK, FK), player1_score, player2_score	Stores match results
+match_codes	match_id (PK, FK), code, assigned_umpire, expires_at	Umpire verification codes
+
+Notes:
+
+Relational links: players → clubs, matches → events, scores → matches, match_codes → matches.
+
+Supports real-time updates using Supabase’s PostgreSQL features.
+
+ Tech Stack
+
+Backend: FastAPI + Uvicorn
+
+Database: Supabase (PostgreSQL)
+
+Frontend: Next.js + Tailwind CSS + TypeScript
+
+Data Handling: Pandas (CSV), Pydantic (validation)
+
+
+Smart_Fixture delivers automated, fair, and secure tournament management, combining:
+
+Intelligent fixture generation
+
+Optimized multi-court scheduling
+
+Secure score submission with match codes
+
+Dynamic leaderboards and progression logic
+
+Perfect for clubs, schools, and professional tournaments.
