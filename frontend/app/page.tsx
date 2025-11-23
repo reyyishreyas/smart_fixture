@@ -101,7 +101,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-indigo-600">Tournament Manager</h1>
+              <h1 className="text-2xl font-bold text-indigo-600">SMART FIXTURE </h1>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
-            Knockout Tournament Management System
+            A Smart And Efficient Tournament Management System
           </h2>
           <p className="mt-4 text-xl text-gray-600">
             Professional tournament management with smart scheduling and real-time updates
