@@ -5,7 +5,8 @@
 [Live Application](https://smart-fixture.vercel.app/)
 
 [Watch Demo Video]([https://drive.google.com/drive/folders/1HMugOr4Xqke8dkWmtqixS5ahpT7zdj1Y?usp=sharing]
-https://drive.google.com/drive/folders/1HMugOr4Xqke8dkWmtqixS5ahpT7zdj1Y?usp=sharing
+https://drive.google.com/drive/folders/1HMugOr4Xqke8dkWmtqixS5ahpT7zdj1Y?usp=sharing 
+this web application is compatible for all kind of devices 
 
 
 ## Table of Contents
