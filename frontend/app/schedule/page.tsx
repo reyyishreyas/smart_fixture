@@ -1,49 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { schedulingAPI } from '@/lib/api';
 import { format, parseISO } from 'date-fns';
 
 export default function SchedulePage() {
   const [eventId, setEventId] = useState('');
+  const [eventName, setEventName] = useState('');
   const [numCourts, setNumCourts] = useState('4');
   const [matchDuration, setMatchDuration] = useState('30');
   const [startTime, setStartTime] = useState('');
   const [schedule, setSchedule] = useState<any[]>([]);
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleCreateSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-    
+  const fetchSchedule = async (id: string) => {
     try {
       const response = await schedulingAPI.schedule({
-        event_id: eventId,
+        event_id: id,
         num_courts: parseInt(numCourts),
         match_duration_minutes: parseInt(matchDuration),
-        start_time: new Date(startTime).toISOString()
+        start_time: startTime ? new Date(startTime).toISOString() : new Date().toISOString(),
       });
-      setMessage(`Success! Scheduled ${response.data.total_matches} matches`);
-      setSchedule(response.data.scheduled || []);
+
+      setEventName(response.data.event_name || '');
+      const pending = response.data.scheduled_matches.filter((m: any) => m.status === 'pending');
+      setSchedule(pending);
     } catch (error: any) {
       setMessage(`Error: ${error.response?.data?.detail || error.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
+  const handleCreateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventId) return setMessage('Please enter Event ID');
+
+    setLoading(true);
+    setMessage('');
+    await fetchSchedule(eventId);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem('schedule');
+    if (stored) setSchedule(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('schedule', JSON.stringify(schedule));
+  }, [schedule]);
+
+  // Group and sort matches by court
   const getCourtSchedules = () => {
-    const courts: any = {};
+    const courts: Record<string, any[]> = {};
     schedule.forEach((match) => {
       if (match.court_id) {
-        if (!courts[match.court_id]) {
-          courts[match.court_id] = [];
-        }
+        if (!courts[match.court_id]) courts[match.court_id] = [];
         courts[match.court_id].push(match);
       }
+    });
+    // Sort each court's matches by start time
+    Object.keys(courts).forEach((courtId) => {
+      courts[courtId].sort(
+        (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
     });
     return courts;
   };
@@ -56,7 +77,9 @@ export default function SchedulePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-indigo-600">Tournament Manager</Link>
+              <Link href="/" className="text-2xl font-bold text-indigo-600">
+                Tournament Manager
+              </Link>
             </div>
           </div>
         </div>
@@ -66,7 +89,11 @@ export default function SchedulePage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Smart Court Scheduling</h1>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-md ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+          <div
+            className={`mb-6 p-4 rounded-md ${
+              message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+            }`}
+          >
             {message}
           </div>
         )}
@@ -143,13 +170,22 @@ export default function SchedulePage() {
                 <div className="space-y-3">
                   {courtSchedules[courtId].map((match: any, idx: number) => (
                     <div key={match.id} className="border-l-4 border-indigo-500 pl-4 py-2">
-                      <div className="text-sm font-medium">Match #{idx + 1}</div>
+                      <div className="text-sm font-medium">
+                        Match #{idx + 1} | Match ID: {match.id}
+                      </div>
                       {match.start_time && (
                         <div className="text-xs text-gray-500">
-                          {format(parseISO(match.start_time), 'HH:mm')} - {match.end_time && format(parseISO(match.end_time), 'HH:mm')}
+                          {format(parseISO(match.start_time), 'HH:mm')} -{' '}
+                          {match.end_time && format(parseISO(match.end_time), 'HH:mm')}
                         </div>
                       )}
                       <div className="text-xs text-gray-600 mt-1">Round {match.round}</div>
+                      <div className="text-xs text-gray-800 mt-1">
+                        Players: {match.player1_name} vs {match.player2_name}
+                      </div>
+                      <div className="text-xs text-green-700 mt-1">
+                        Match Code: {match.match_code || 'Generating...'}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -165,6 +201,7 @@ export default function SchedulePage() {
             <li>Zero overlapping matches for any player</li>
             <li>Optimal court utilization to minimize idle time</li>
             <li>Automatic conflict detection and resolution</li>
+            <li>Pending matches remain visible until scored</li>
           </ul>
         </div>
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import players, clubs, fixtures, scheduling, match_codes, results
+from app.routers import players, clubs, events, fixtures, scheduling, match_codes, results
 from app.utils.database import init_supabase, is_supabase_configured
 import logging
 
@@ -21,12 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include all routers
 app.include_router(players.router, prefix="/api", tags=["players"])
 app.include_router(clubs.router, prefix="/api", tags=["clubs"])
 app.include_router(fixtures.router, prefix="/api", tags=["fixtures"])
 app.include_router(scheduling.router, prefix="/api", tags=["scheduling"])
 app.include_router(match_codes.router, prefix="/api", tags=["match_codes"])
 app.include_router(results.router, prefix="/api", tags=["results"])
+app.include_router(events.router, prefix="/api", tags=["events"])
 
 @app.on_event("startup")
 async def startup_event():

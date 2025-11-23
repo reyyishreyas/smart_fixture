@@ -34,18 +34,18 @@ export const fixturesAPI = {
 
 export const schedulingAPI = {
   schedule: (data: any) => api.post('/schedule-matches', data),
-  getCourt: (courtId: string, eventId?: string) => 
-    api.get(`/schedule/${courtId}`, { params: { event_id: eventId } }),
+  getCourt: (courtId: string, eventId?: string) => api.get(`/schedule/${courtId}`, { params: { event_id: eventId } }),
+  getSchedule: (eventId: string) => api.get(`/schedule-event/${eventId}`),
 };
 
 export const matchCodesAPI = {
-  generate: (matchId: string, umpire: string) => 
-    api.post('/match-code/generate', { match_id: matchId, assigned_umpire: umpire }),
-  verify: (matchId: string, code: string) => 
-    api.post('/match-code/verify', { match_id: matchId, code }),
+  generate: (matchId: string, umpire: string) => api.post('/match-code/generate', { match_id: matchId, assigned_umpire: umpire }),
+  verify: (matchId: string, code: string) => api.post('/match-code/verify', { match_id: matchId, code }),
 };
 
 export const resultsAPI = {
   updateScore: (data: any) => api.post('/update-score', data),
-  getLeaderboard: (eventId: string) => api.get(`/leaderboard/${eventId}`),
+
+  // Updated to no argument, frontend just fetches latest leaderboard
+  getLeaderboard: () => api.get('/leaderboard'),
 };

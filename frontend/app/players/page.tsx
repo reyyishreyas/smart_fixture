@@ -1,26 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { playersAPI } from '@/lib/api';
+import axios from 'axios';
+
+interface PlayerForm {
+  name: string;
+  age: string;       // keep as string for input
+  phone: string;
+  club_id: string;
+  event_ids: string[];
+}
 
 export default function PlayersPage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PlayerForm>({
     name: '',
     age: '',
     phone: '',
     club_id: '',
     event_ids: []
   });
+  const [clubs, setClubs] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  // Fetch clubs and events
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const clubsRes = await axios.get(`${API_URL}/clubs`);
+        setClubs(clubsRes.data);
+
+        const eventsRes = await axios.get(`${API_URL}/events`);
+        setEvents(eventsRes.data);
+      } catch (err) {
+        console.error('Error fetching clubs/events:', err);
+        setMessage('Failed to fetch clubs or events. Check backend.');
+      }
+    };
+    fetchData();
+  }, [API_URL]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    
+
     try {
       const response = await playersAPI.create({
         ...formData,
@@ -36,15 +66,22 @@ export default function PlayersPage() {
     }
   };
 
+  // Updated CSV Upload: registers player to event by event_name (case-insensitive)
   const handleCSVUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
-    
+
     setLoading(true);
     setMessage('');
-    
+
     try {
-      const response = await playersAPI.uploadCSV(file);
+      const formDataObj = new FormData();
+      formDataObj.append('file', file);
+
+      const response = await axios.post(`${API_URL}/players/upload-csv`, formDataObj, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+
       setMessage(`CSV uploaded! ${response.data.inserted_count} players added, ${response.data.invalid_rows} errors`);
       setFile(null);
     } catch (error: any) {
@@ -76,6 +113,7 @@ export default function PlayersPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Individual Registration */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Individual Registration</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,7 +124,7 @@ export default function PlayersPage() {
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
 
@@ -97,7 +135,7 @@ export default function PlayersPage() {
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.age}
-                  onChange={(e) => setFormData({...formData, age: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                 />
               </div>
 
@@ -108,20 +146,40 @@ export default function PlayersPage() {
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Club ID (UUID)</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-gray-700">Select Club</label>
+                <select
                   required
-                  placeholder="Enter club UUID"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.club_id}
-                  onChange={(e) => setFormData({...formData, club_id: e.target.value})}
-                />
+                  onChange={(e) => setFormData({ ...formData, club_id: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Select Club</option>
+                  {clubs.map((club) => (
+                    <option key={club.id} value={club.id}>{club.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Select Events</label>
+                <select
+                  multiple
+                  value={formData.event_ids}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                    setFormData({ ...formData, event_ids: selected });
+                  }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  {events.map((ev) => (
+                    <option key={ev.id} value={ev.id}>{ev.name} ({ev.type})</option>
+                  ))}
+                </select>
               </div>
 
               <button
@@ -134,13 +192,14 @@ export default function PlayersPage() {
             </form>
           </div>
 
+          {/* CSV Upload */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold mb-4">CSV Bulk Upload</h2>
             <form onSubmit={handleCSVUpload} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV File</label>
                 <div className="text-xs text-gray-500 mb-2">
-                  CSV Format: name, age, phone, club_id
+                  CSV Format: name, age, phone, club_id, event_name
                 </div>
                 <input
                   type="file"
@@ -162,9 +221,9 @@ export default function PlayersPage() {
             <div className="mt-6 p-4 bg-blue-50 rounded-md">
               <h3 className="font-medium text-blue-900 mb-2">CSV Example:</h3>
               <pre className="text-xs text-blue-700">
-{`name,age,phone,club_id
-John Doe,25,+1234567890,uuid-here
-Jane Smith,28,+0987654321,uuid-here`}
+{`name,age,phone,club_id,event_name
+John Doe,25,+1234567890,uuid-here,Knockout
+Jane Smith,28,+0987654321,uuid-here,Round Robin`}
               </pre>
             </div>
           </div>

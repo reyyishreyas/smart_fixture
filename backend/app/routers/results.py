@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 import uuid
-from app.models import ScoreCreate, LeaderboardEntry
+from app.models import ScoreCreate
 from app.utils.database import get_supabase
 
 router = APIRouter()
@@ -34,6 +34,7 @@ async def update_score(score: ScoreCreate):
         
         supabase.table("matches").update({"status": "completed"}).eq("id", str(score.match_id)).execute()
         
+        # Handle next round matches
         next_round = match['round'] + 1
         next_round_matches = supabase.table("matches").select("*").eq("event_id", match['event_id']).eq("round", next_round).execute()
         
@@ -84,11 +85,22 @@ async def update_score(score: ScoreCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/leaderboard/{event_id}")
-async def get_leaderboard(event_id: str):
+@router.get("/leaderboard")
+async def get_latest_leaderboard():
+    """
+    Returns the leaderboard for the latest event automatically.
+    """
     supabase = get_supabase()
     
     try:
+        # Fetch latest event
+        events_res = supabase.table("events").select("*").order("created_at", desc=True).limit(1).execute()
+        if not events_res.data:
+            raise HTTPException(status_code=404, detail="No events found")
+        latest_event = events_res.data[0]
+
+        event_id = latest_event["id"]
+
         matches = supabase.table("matches").select("*").eq("event_id", event_id).eq("status", "completed").execute()
         
         player_stats = {}
@@ -140,6 +152,7 @@ async def get_leaderboard(event_id: str):
         
         return {
             "event_id": event_id,
+            "event_name": latest_event["name"],
             "leaderboard": leaderboard
         }
     
