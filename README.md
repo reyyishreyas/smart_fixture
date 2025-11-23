@@ -1,290 +1,249 @@
-Smart Fixture
+# Smart Fixture
 
-Smart Fixture is a comprehensive tournament management system that intelligently generates fixtures, schedules matches, and secures score submissions through automated match codes. It is designed to handle knockout tournaments efficiently while respecting club affiliations, player rest periods, and court availability.
+**Smart Fixture** is a comprehensive tournament management system that intelligently generates fixtures, schedules matches, and secures score submissions through automated match codes. It is designed to handle knockout tournaments efficiently while respecting club affiliations, player rest periods, and court availability.  
 
-Live Application:- https://smart-fixture.vercel.app/
+[Live Application](https://smart-fixture.vercel.app/)
 
-Table of Contents
 
-Fixture Logic
+---
 
-Scheduling Logic
+## Table of Contents
 
-Match-Code Flow & Security
+1. [Fixture Logic](#fixture-logic)  
+2. [Scheduling Logic](#scheduling-logic)  
+3. [Match-Code Flow & Security](#match-code-flow--security)  
+4. [Database Schema](#database-schema)  
+5. [Player Registration Flow](#player-registration-flow)  
+6. [Fixture Generation Flow](#fixture-generation-flow)  
+7. [Smart Scheduling Flow](#smart-scheduling-flow)  
+8. [Match-Code Verification Flow](#match-code-verification-flow)  
 
-Database Schema
+---
 
-Player Registration Flow
+## 1. Fixture Logic
 
-Fixture Generation Flow
+The fixture engine generates balanced knockout brackets while handling **byes**, **same-club conflicts**, and **automatic winner progression**.  
 
-Smart Scheduling Flow
+### Step-by-Step Logic
 
-Match-Code Verification Flow
+1. **Player Validation**  
+   - Each player must have a **unique ID**, **club association**, and required personal details.  
 
-1. Fixture Logic
+2. **Bracket Size Calculation**  
+   - Compute the next power of 2 ≥ number of players.  
+   - Example: 22 players → bracket size 32 → 10 byes.  
 
-The fixture engine generates balanced knockout brackets while handling byes, same-club conflicts, and automatic winner progression.
+3. **Seeding & Randomization**  
+   - Players are shuffled and assigned using **snake seeding** to avoid clustering players from the same club.  
 
-Step-by-Step Logic
+4. **Same-Club Avoidance**  
+   - First-round pairings are scanned and swapped to resolve conflicts.  
 
-Player Validation
+5. **Bye Allocation**  
+   - Empty slots become **byes**, and players automatically advance.  
 
-Each player must have a unique ID, club association, and required personal details.
+6. **Match Creation & Auto-Progression**  
+   - Matches are created with `player1_id`, `player2_id`, `round`, and `event_id`.  
+   - Winners auto-advance to the next round.  
 
-Bracket Size Calculation
-
-Compute the next power of 2 ≥ number of players.
-
-Example: 22 players → bracket size 32 → 10 byes.
-
-Seeding & Randomization
-
-Players are shuffled and assigned using snake seeding to avoid clustering players from the same club.
-
-Same-Club Avoidance
-
-First-round pairings are scanned and swapped to resolve conflicts.
-
-Bye Allocation
-
-Empty slots become byes, and players automatically advance.
-
-Match Creation & Auto-Progression
-
-Matches are created with player1_id, player2_id, round, and event_id.
-
-Winners auto-advance to the next round.
-
-Simplified Diagram
-[Player Pool] 
-      ↓
-  Shuffle & Seed
-      ↓
-  First Round Matches
-      ↓
+### Simplified Diagram
+[Player Pool]
+↓
+Shuffle & Seed
+↓
+First Round Matches
+↓
 Same-Club Conflict Check
-      ↓
-    Bye Allocation
-      ↓
-  Schedule Matches
-      ↓
- Winner Progression → Next Round
+↓
+Bye Allocation
+↓
+Schedule Matches
+↓
+Winner Progression → Next Round
 
-2. Scheduling Logic
 
-The scheduling engine assigns matches to courts and times while ensuring rest periods and avoiding conflicts.
+## 2. Scheduling Logic
 
-Steps
+The scheduling engine assigns matches to **courts** and **times** while ensuring rest periods and avoiding conflicts.  
 
-Court State Tracking
+### Steps
 
-Each court maintains its scheduled matches to determine earliest availability.
+1. **Court State Tracking**  
+   - Each court maintains its scheduled matches to determine earliest availability.  
 
-Player Availability
+2. **Player Availability**  
+   - Tracks last match for each player to enforce minimum rest time.  
 
-Tracks last match for each player to enforce minimum rest time.
+3. **Conflict Avoidance**  
+   - Ensures no overlapping matches; shifts matches if required.  
 
-Conflict Avoidance
+4. **Court Assignment**  
+   - Assigns matches to courts minimizing idle time.  
 
-Ensures no overlapping matches; shifts matches if required.
+5. **Schedule Finalization**  
+   - Stores `court_id`, `start_time`, and `end_time` for each match.  
 
-Court Assignment
-
-Assigns matches to courts minimizing idle time.
-
-Schedule Finalization
-
-Stores court_id, start_time, and end_time for each match.
-
-Simplified Flowchart
+### Simplified Flowchart
 [Pending Matches]
-      ↓
+↓
 Check Player Availability & Rest
-      ↓
+↓
 Check Court Availability
-      ↓
+↓
 Assign Court & Time
-      ↓
+↓
 Update Schedule → Next Match
 
-3. Match-Code Flow & Security
 
-Ensures secure umpire verification for score submission.
+## 3. Match-Code Flow & Security
 
-Steps
+Ensures **secure umpire verification** for score submission.  
 
-Generation
+### Steps
 
-Each match receives a unique 6-character alphanumeric code, stored with assigned_umpire and expires_at.
+1. **Generation**  
+   - Each match receives a unique **6-character alphanumeric code**, stored with `assigned_umpire` and `expires_at`.  
 
-Verification
+2. **Verification**  
+   - Umpire submits code → system checks validity, match state, and expiry.  
 
-Umpire submits code → system checks validity, match state, and expiry.
+3. **Score Submission**  
+   - Verified codes allow score recording; match status updates to completed.  
 
-Score Submission
+4. **Auto-Progression**  
+   - Winners automatically advance to the next round.  
 
-Verified codes allow score recording; match status updates to completed.
-
-Auto-Progression
-
-Winners automatically advance to the next round.
-
-Diagram
+### Diagram
 [Match Created] → Generate Match Code
-      ↓
+↓
 [Umpire Submits Code]
-      ↓
- Validate Code & Match State
-      ↓
- Submit Score → Update Match Status
-      ↓
- Winner Progresses → Next Round
+↓
+Validate Code & Match State
+↓
+Submit Score → Update Match Status
+↓
+Winner Progresses → Next Round
 
-4. Database Schema
-Key Tables
 
-players: id, name, club_id, age, unique_player_id
+## 4. Database Schema
 
-clubs: id, name
+### Key Tables
+- **players**: `id`, `name`, `club_id`, `age`, `unique_player_id`  
+- **clubs**: `id`, `name`  
+- **matches**: `id`, `player1_id`, `player2_id`, `round`, `event_id`, `court_id`, `start_time`, `end_time`, `status`  
+- **match_codes**: `match_id`, `code`, `assigned_umpire`, `expires_at`  
+- **scores**: `match_id`, `player1_score`, `player2_score`, `winner_id`  
+- **courts**: `id`, `name`, `location`  
 
-matches: id, player1_id, player2_id, round, event_id, court_id, start_time, end_time, status
+### Relationships
+- Each **player** belongs to a **club**  
+- Each **match** has two players  
+- Each **match code** links to a match and umpire  
+- Each **court** is assigned per match  
 
-match_codes: match_id, code, assigned_umpire, expires_at
+---
 
-scores: match_id, player1_score, player2_score, winner_id
+## 5. Player Registration Flow
 
-courts: id, name, location
+**Key Logic (`players.py`)**:  
+1. Player enters **name, age, phone, club, and event IDs**.  
+2. For each event:  
+   - Check duplicates → reject if exists  
+   - Validate club → reject if not exists  
+   - Assign UUID → insert into `players` table  
+   - Map player to event → insert into `player_events` table  
+3. **Supports CSV bulk upload** with validation and error reporting  
 
-Relationships
-
-Each player belongs to a club
-
-Each match has two players
-
-Each match code links to a match and umpire
-
-Each court is assigned per match
-
-5. Player Registration Flow
-
-Key Logic (players.py):
-
-Player enters name, age, phone, club, and event IDs.
-
-For each event:
-
-Check duplicates → reject if exists
-
-Validate club → reject if not exists
-
-Assign UUID → insert into players table
-
-Map player to event → insert into player_events table
-
-Supports CSV bulk upload with validation and error reporting
-
-Flowchart
+### Flowchart
 [Player Input / CSV Upload]
-          ↓
-  Check Club Exists? → No → Error
-          ↓ Yes
-  Check Duplicate in Event? → Yes → Error
-          ↓ No
+↓
+Check Club Exists? → No → Error
+↓ Yes
+Check Duplicate in Event? → Yes → Error
+↓ No
 Generate Unique Player ID
-          ↓
+↓
 Insert into players table
-          ↓
+↓
 Insert into player_events table
-          ↓
+↓
 [Success / Error Report]
 
-6. Fixture Generation Flow
 
-Key Logic (fixtures.py):
+## 6. Fixture Generation Flow
 
-Fetch registered players for the event
+**Key Logic (`fixtures.py`)**:  
+- Fetch registered players for the event  
+- Compute next power of 2 → determine byes  
+- Shuffle players → avoid same-club first-round clashes  
+- Assign byes → create matches in `matches` table  
 
-Compute next power of 2 → determine byes
-
-Shuffle players → avoid same-club first-round clashes
-
-Assign byes → create matches in matches table
-
-Flowchart
+### Flowchart
 [Fetch Registered Players]
-          ↓
+↓
 Calculate Bracket Size & Byes
-          ↓
+↓
 Shuffle & Avoid Same-Club Clashes
-          ↓
+↓
 Assign Byes to Players
-          ↓
+↓
 Create Matches (status=pending/bye)
-          ↓
+↓
 Insert Matches into DB
-          ↓
+↓
 [Fixtures Generated]
 
-7. Smart Scheduling Flow
 
-Key Logic (scheduling.py):
 
-Skip bye matches
+## 7. Smart Scheduling Flow
 
-For each match:
+**Key Logic (`scheduling.py`)**:  
+- Skip bye matches  
+- For each match:  
+  - Check player availability & rest  
+  - Check court availability  
+  - Assign court, start & end time  
+- Update DB and generate match codes  
 
-Check player availability & rest
-
-Check court availability
-
-Assign court, start & end time
-
-Update DB and generate match codes
-
-Flowchart
+### Flowchart
 [Pending Matches]
-          ↓
+↓
 Skip Bye Matches
-          ↓
+↓
 For Each Match:
-  Check Player Availability & Rest
-  Check Court Availability
-  Assign Court & Start/End Time
-          ↓
+Check Player Availability & Rest
+Check Court Availability
+Assign Court & Start/End Time
+↓
 Update DB (matches table)
 Generate / Assign Match Code
-          ↓
+↓
 [Scheduled Matches with Match Codes]
 
-8. Match-Code Verification Flow
 
-Key Logic (match_codes.py):
+## 8. Match-Code Verification Flow
 
-Umpire submits match_id + code
+**Key Logic (`match_codes.py`)**:  
+- Umpire submits `match_id + code`  
+- Verify:  
+  - Match exists?  
+  - Code valid & not expired?  
+- If valid → allow score submission  
+- If invalid → reject  
 
-Verify:
-
-Match exists?
-
-Code valid & not expired?
-
-If valid → allow score submission
-
-If invalid → reject
-
-Flowchart
-
+### Flowchart
 [Umpire Submits Match Code]
-          ↓
+↓
 Check Match Exists? → No → Error
-          ↓ Yes
+↓ Yes
 Check Code Matches & Not Expired? → No → Error
-          ↓ Yes
+↓ Yes
 Allow Score Submission
-          ↓
+↓
 Update Match Status / Winner Progression
 
-Backend Source
+---
 
-All core logic lives in the backend folder of this GitHub Repository
+### Backend Source
+
+All core logic lives in the `backend` folder of this [GitHub Repository](https://github.com/reyyishreyas/smart_fixture).
