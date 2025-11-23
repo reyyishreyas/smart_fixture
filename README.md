@@ -47,19 +47,7 @@ The fixture engine generates balanced knockout brackets while handling **byes**,
    - Winners auto-advance to the next round.  
 
 ### Simplified Diagram
-[Player Pool]
-↓
-Shuffle & Seed
-↓
-First Round Matches
-↓
-Same-Club Conflict Check
-↓
-Bye Allocation
-↓
-Schedule Matches
-↓
-Winner Progression → Next Round
+<img width="323" height="326" alt="Screenshot 2025-11-23 at 11 47 25 PM" src="https://github.com/user-attachments/assets/66471b54-7465-4588-9ef0-03ea9a80a547" />
 
 
 ## 2. Scheduling Logic
@@ -84,16 +72,7 @@ The scheduling engine assigns matches to **courts** and **times** while ensuring
    - Stores `court_id`, `start_time`, and `end_time` for each match.  
 
 ### Simplified Flowchart
-[Pending Matches]
-↓
-Check Player Availability & Rest
-↓
-Check Court Availability
-↓
-Assign Court & Time
-↓
-Update Schedule → Next Match
-
+<img width="309" height="236" alt="Screenshot 2025-11-23 at 11 48 03 PM" src="https://github.com/user-attachments/assets/4ae238cd-4c43-481e-9ef4-7d506d61b403" />
 
 ## 3. Match-Code Flow & Security
 
@@ -114,15 +93,7 @@ Ensures **secure umpire verification** for score submission.
    - Winners automatically advance to the next round.  
 
 ### Diagram
-[Match Created] → Generate Match Code
-↓
-[Umpire Submits Code]
-↓
-Validate Code & Match State
-↓
-Submit Score → Update Match Status
-↓
-Winner Progresses → Next Round
+<img width="352" height="240" alt="Screenshot 2025-11-23 at 11 49 02 PM" src="https://github.com/user-attachments/assets/6d2c2025-85cc-4428-9ef4-e33dfb80c296" />
 
 
 ## 4. Database Schema
@@ -155,20 +126,7 @@ Winner Progresses → Next Round
 3. **Supports CSV bulk upload** with validation and error reporting  
 
 ### Flowchart
-[Player Input / CSV Upload]
-↓
-Check Club Exists? → No → Error
-↓ Yes
-Check Duplicate in Event? → Yes → Error
-↓ No
-Generate Unique Player ID
-↓
-Insert into players table
-↓
-Insert into player_events table
-↓
-[Success / Error Report]
-
+<img width="369" height="346" alt="Screenshot 2025-11-23 at 11 49 31 PM" src="https://github.com/user-attachments/assets/6551f7d7-920f-485f-a0d7-5c26ae534391" />
 
 ## 6. Fixture Generation Flow
 
@@ -179,20 +137,7 @@ Insert into player_events table
 - Assign byes → create matches in `matches` table  
 
 ### Flowchart
-[Fetch Registered Players]
-↓
-Calculate Bracket Size & Byes
-↓
-Shuffle & Avoid Same-Club Clashes
-↓
-Assign Byes to Players
-↓
-Create Matches (status=pending/bye)
-↓
-Insert Matches into DB
-↓
-[Fixtures Generated]
-
+<img width="340" height="334" alt="Screenshot 2025-11-23 at 11 49 55 PM" src="https://github.com/user-attachments/assets/aa314658-7235-4355-b40b-56f8c228a513" />
 
 
 ## 7. Smart Scheduling Flow
@@ -206,20 +151,7 @@ Insert Matches into DB
 - Update DB and generate match codes  
 
 ### Flowchart
-[Pending Matches]
-↓
-Skip Bye Matches
-↓
-For Each Match:
-Check Player Availability & Rest
-Check Court Availability
-Assign Court & Start/End Time
-↓
-Update DB (matches table)
-Generate / Assign Match Code
-↓
-[Scheduled Matches with Match Codes]
-
+<img width="368" height="332" alt="Screenshot 2025-11-23 at 11 50 36 PM" src="https://github.com/user-attachments/assets/777b743a-4e2c-438b-9716-bb0fa89e5e24" />
 
 ## 8. Match-Code Verification Flow
 
@@ -232,17 +164,7 @@ Generate / Assign Match Code
 - If invalid → reject  
 
 ### Flowchart
-[Umpire Submits Match Code]
-↓
-Check Match Exists? → No → Error
-↓ Yes
-Check Code Matches & Not Expired? → No → Error
-↓ Yes
-Allow Score Submission
-↓
-Update Match Status / Winner Progression
-
----
+<img width="448" height="229" alt="Screenshot 2025-11-23 at 11 50 59 PM" src="https://github.com/user-attachments/assets/2a97b083-15f0-4029-b32d-39042fc9df49" />
 
 ### Backend Source
 
